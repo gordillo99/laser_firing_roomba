@@ -12,10 +12,12 @@ const unsigned int servo2right = 17;
 const unsigned int servo2stopped = 18;
 
 //Roomba
-const unsigned int roombaleft = 32;
-const unsigned int roombaright = 33;
-const unsigned int roombafor = 48;
-const unsigned int roombaback = 49;
+const unsigned int roomba2for = 32;
+const unsigned int roomba2back = 33;
+const unsigned int roomba2stop = 34;
+const unsigned int roomba1for = 48;
+const unsigned int roomba1back = 49;
+const unsigned int roomba1stop = 50;
 
 //laser
 const unsigned int firelaser = 64;
@@ -35,17 +37,16 @@ const int laser_activation_pin = 3;      // the number of the laster activation 
 bool firing_laser = false; // global variable for current state of laser
 int servo_1_dir = 0; // -1 (backward), 0 (static), 1 (forward)
 int servo_2_dir = 0; // -1 (backward), 0 (static), 1 (forward)
-int roomba_dir = 0;// -1 (backward), 0 (static), 1 (forward), 2 (right), 3 (left)
+int roomba1_dir = 0;// -1 (backward), 0 (static), 1 (forward)
+int roomba2_dir = 0;// -1 (backward), 0 (static), 1 (forward)
 
 Servo myServo, myServo2; //The two servo motors. myServo attached to digital pin 9 and myServo2 attached to digital pin 8
-
-int pos_servo1; // angle position of servo 1
-int pos_servo2; // angle position of servo 2
 
 void setup() {
   // initialize serial communication at 9600 bits per second:
   Serial.begin(9600);
   Serial1.begin(9600);
+  Serial2.begin(9600);
   
   // initialize laser related pins
   pinMode(laser_activation_pin, OUTPUT);
@@ -109,6 +110,26 @@ void loop() {
       case servo2stopped:
         servo_2_dir = stopped;
         break;
+
+      case roomba1for:
+        roomba1_dir = backward;
+        break;
+      case roomba1back:
+        roomba1_dir = forward;
+        break;
+      case roomba1stop:
+        roomba1_dir = stopped;
+        break;
+
+      case roomba2for:
+        roomba2_dir = backward;
+        break;
+      case roomba2back:
+        roomba2_dir = forward;
+        break;
+      case roomba2stop:
+        roomba2_dir = stopped;
+        break;
     }   
   }
 
@@ -122,6 +143,24 @@ void loop() {
     move_servo_left(myServo2);
   } else if (servo_2_dir == forward) {
     move_servo_right(myServo2);
+  }
+
+
+
+  if (roomba1_dir == backward) {
+    turn_roomba_right();
+  } else if (roomba1_dir == forward) {
+    turn_roomba_left();
+  }
+
+  if (roomba2_dir == backward) {
+    move_roomba_backward();
+  } else if (roomba2_dir == forward) {
+    move_roomba_forward();
+  }
+
+  if (roomba1_dir == stopped && roomba2_dir == stopped) {
+    stop_roomba();
   }
 
   delay(25); // delay in between reads for stability
@@ -149,6 +188,26 @@ void move_servo_right(Servo servo) {
   if (pos < 170) {
     servo.write(pos + 1);
   }
+}
+
+void turn_roomba_right() {
+  Serial2.write('r');
+}
+
+void turn_roomba_left() {
+  Serial2.write('l');
+}
+
+void move_roomba_forward() {
+  Serial2.write('f');
+}
+
+void move_roomba_backward() {
+  Serial2.write('b');
+}
+
+void stop_roomba() {
+  Serial2.write('s');
 }
 
 
