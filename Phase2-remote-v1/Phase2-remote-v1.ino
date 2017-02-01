@@ -1,3 +1,5 @@
+#include "Arduino.h"
+#include "scheduler.h"
 #include <Servo.h>
 #include "Roomba_Driver.h"
 
@@ -45,49 +47,51 @@ int roomba2_dir = 0;// -1 (backward), 0 (static), 1 (forward)
 
 Servo myServo, myServo2; //The two servo motors. myServo attached to digital pin 9 and myServo2 attached to digital pin 8
 
-void setup() {
-  // initialize serial communication at 9600 bits per second:
-  Serial.begin(9600);
-  Serial1.begin(9600);
-  Serial2.begin(9600);
-  
-  // initialize laser related pins
-  pinMode(laser_activation_pin, OUTPUT);
-
-  // RESETS SERVOS TO INITIAL POSITION
-  int pos = 0;
-  myServo.attach(9);
-  int angle = myServo.read();
-  for (; angle < 90 - 1 || pos > 90 + 1;) { // initializes myServo to be at about 90 degrees
-    // in steps of 1 degree
-    // tell servo to go to around 90 degrees
-    if(angle < 90 - 1)
-      myServo.write(angle++);  
-    if(angle > 90 - 1)
-      myServo.write(angle--);  
-    delay(10);                       // waits 15ms for the servo to reach the position
-    angle = myServo.read();
+void fire_laser(int command) {
+  if (command == offlaser) {
+    digitalWrite(laser_activation_pin, LOW);
+  } else if(command == firelaser) {
+    digitalWrite(laser_activation_pin, HIGH);
   }
-
-  myServo2.attach(8);
-  angle = myServo2.read();
-  for (; angle < 90 - 1 || pos > 90 + 1;) { // initializes the myServo2 to be at about 90 degrees
-    // in steps of 1 degree
-    // tell servo to go to around 90 degrees
-    if(angle < 90 - 1)
-      myServo2.write(angle++);  
-    if(angle > 90 - 1)
-      myServo2.write(angle--);  
-    delay(10);                       
-    angle = myServo2.read();
-  }
-
-  //initialize the Roomba
-  r.init();
-  delay(1000);
 }
 
-void loop() {
+void move_servo_left(Servo servo) {
+  int pos = servo.read();
+
+  if (pos > 5) {
+    servo.write(pos - 1);
+  }
+}
+
+void move_servo_right(Servo servo) {
+  int pos = servo.read();
+
+  if (pos < 170) {
+    servo.write(pos + 1);
+  }
+}
+
+void turn_roomba_right() {
+  r.drive(50, -1);
+}
+
+void turn_roomba_left() {
+  r.drive(50, 1);
+}
+
+void move_roomba_forward() {
+  r.drive(50, 32768);
+}
+
+void move_roomba_backward() {
+  r.drive(-50, 32768);
+}
+
+void stop_roomba() {
+  r.drive(0, 0);
+}
+
+void poll_incoming_commands() {
   // poll for incoming commands
   if(Serial1.available()) {
     int command = Serial1.read();
@@ -139,7 +143,9 @@ void loop() {
         break;
     }   
   }
+}
 
+void move_servos() {
   if (servo_1_dir == backward) {
     move_servo_left(myServo);
   } else if (servo_1_dir == forward) {
@@ -151,8 +157,9 @@ void loop() {
   } else if (servo_2_dir == forward) {
     move_servo_right(myServo2);
   }
+}
 
-
+void move_roomba() {
   if (roomba1_dir == right) { // Changed "forward" to "right"
     turn_roomba_right();
   } else if (roomba1_dir == left) { //Changed "backward" to "left"
@@ -167,58 +174,81 @@ void loop() {
 
   if (roomba1_dir == stopped && roomba2_dir == stopped) {
     stop_roomba();
+  } 
+}
+ 
+// idle task
+void idle(uint32_t idle_period)
+{
+  // this function can perform some low-priority task while the scheduler has nothing to run.
+  // It should return before the idle period (measured in ms) has expired.  For example, it
+  // could sleep or respond to I/O.
+ 
+  // example idle function that just pulses a pin.
+  //digitalWrite(idle_pin, HIGH);
+  //delay(idle_period);
+  //digitalWrite(idle_pin, LOW);
+}
+ 
+void setup()
+{
+  // initialize serial communication at 9600 bits per second:
+  Serial.begin(9600);
+  Serial1.begin(9600);
+  Serial2.begin(9600);
+  
+  // initialize laser related pins
+  pinMode(laser_activation_pin, OUTPUT);
+
+  // RESETS SERVOS TO INITIAL POSITION
+  int pos = 0;
+  myServo.attach(9);
+  int angle = myServo.read();
+  for (; angle < 90 - 1 || pos > 90 + 1;) { // initializes myServo to be at about 90 degrees
+    // in steps of 1 degree
+    // tell servo to go to around 90 degrees
+    if(angle < 90 - 1)
+    myServo.write(angle++);  
+    if(angle > 90 - 1)
+    myServo.write(angle--);  
+    delay(10);                       // waits 15ms for the servo to reach the position
+    angle = myServo.read();
   }
 
-  delay(25); // delay in between reads for stability
-}
+  myServo2.attach(8);
+  angle = myServo2.read();
+  for (; angle < 90 - 1 || pos > 90 + 1;) { // initializes the myServo2 to be at about 90 degrees
+    // in steps of 1 degree
+    // tell servo to go to around 90 degrees
+    if(angle < 90 - 1)
+    myServo2.write(angle++);  
+    if(angle > 90 - 1)
+    myServo2.write(angle--);  
+    delay(10);                       
+    angle = myServo2.read();
+  }
 
-void fire_laser(int command) {
-  if (command == offlaser) {
-    digitalWrite(laser_activation_pin, LOW);
-  } else if(command == firelaser) {
-    digitalWrite(laser_activation_pin, HIGH);
+  //initialize the Roomba
+  r.init();
+  delay(1000);
+ 
+  // initialize scheduler
+  Scheduler_Init();
+ 
+  // Start task arguments are:
+  //    start offset in ms, period in ms, function callback
+ 
+  Scheduler_StartTask(0, 63, poll_incoming_commands);
+  Scheduler_StartTask(70, 50, move_servos);
+  Scheduler_StartTask(100, 100, move_roomba);
+}
+ 
+void loop()
+{
+  uint32_t idle_period = Scheduler_Dispatch();
+  if (idle_period)
+  {
+    idle(idle_period);
   }
 }
-
-void move_servo_left(Servo servo) {
-  int pos = servo.read();
-
-  if (pos > 5) {
-    servo.write(pos - 1);
-  }
-}
-
-void move_servo_right(Servo servo) {
-  int pos = servo.read();
-
-  if (pos < 170) {
-    servo.write(pos + 1);
-  }
-}
-
-void turn_roomba_right() {
-  //Serial2.write('r'); -- doesn't make sense
-  r.drive(50, -1);
-}
-
-void turn_roomba_left() {
-  //Serial2.write('l');
-  r.drive(50, 1);
-}
-
-void move_roomba_forward() {
-  //Serial2.write('f');
-  r.drive(50, 32768);
-}
-
-void move_roomba_backward() {
-  //Serial2.write('b');
-  r.drive(-50, 32768);
-}
-
-void stop_roomba() {
-  //Serial2.write('s');
-  r.drive(0, 0);
-}
-
 
