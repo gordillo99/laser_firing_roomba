@@ -55,7 +55,6 @@ void setup() {
   // initialize pins
   pinMode(laser_button_pin, INPUT_PULLUP);
   pinMode(roomba_button_pin, INPUT_PULLUP);
-<<<<<<< HEAD
   lcd.begin(16, 2);
 }
 
