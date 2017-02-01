@@ -119,10 +119,17 @@ void loop() {
         break;
 
       case roomba1for:
+<<<<<<< HEAD
         roomba1_dir = right;
         break;
       case roomba1back:
         roomba1_dir = left;
+=======
+        roomba1_dir = backward;
+        break;
+      case roomba1back:
+        roomba1_dir = forward;
+>>>>>>> master
         break;
       case roomba1stop:
         roomba1_dir = stopped;
@@ -154,9 +161,15 @@ void loop() {
 
 
 
+<<<<<<< HEAD
   if (roomba1_dir == right) { // Changed "forward" to "right"
     turn_roomba_right();
   } else if (roomba1_dir == left) { //Changed "backward" to "left"
+=======
+  if (roomba1_dir == backward) {
+    turn_roomba_right();
+  } else if (roomba1_dir == forward) {
+>>>>>>> master
     turn_roomba_left();
   }
 
@@ -198,6 +211,7 @@ void move_servo_right(Servo servo) {
 }
 
 void turn_roomba_right() {
+<<<<<<< HEAD
   //Serial2.write('r'); -- doesn't make sense
   r.drive(50, -1);
 }
@@ -220,6 +234,25 @@ void move_roomba_backward() {
 void stop_roomba() {
   //Serial2.write('s');
   r.drive(0, 0);
+=======
+  Serial2.write('r');
+}
+
+void turn_roomba_left() {
+  Serial2.write('l');
+}
+
+void move_roomba_forward() {
+  Serial2.write('f');
+}
+
+void move_roomba_backward() {
+  Serial2.write('b');
+}
+
+void stop_roomba() {
+  Serial2.write('s');
+>>>>>>> master
 }
 
 
