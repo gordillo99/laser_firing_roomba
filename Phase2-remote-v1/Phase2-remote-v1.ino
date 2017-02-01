@@ -1,4 +1,7 @@
 #include <Servo.h>
+#include "Roomba_Driver.h"
+
+Roomba r(2, 30);
 
 // CONSTANT BYTE TO NUMBER CONVENTIONS
 //servo1
@@ -78,6 +81,10 @@ void setup() {
     delay(10);                       
     angle = myServo2.read();
   }
+
+  //initialize the Roomba
+  r.init();
+  delay(1000);
 }
 
 void loop() {
@@ -112,10 +119,10 @@ void loop() {
         break;
 
       case roomba1for:
-        roomba1_dir = backward;
+        roomba1_dir = right;
         break;
       case roomba1back:
-        roomba1_dir = forward;
+        roomba1_dir = left;
         break;
       case roomba1stop:
         roomba1_dir = stopped;
@@ -146,10 +153,9 @@ void loop() {
   }
 
 
-
-  if (roomba1_dir == backward) {
+  if (roomba1_dir == right) { // Changed "forward" to "right"
     turn_roomba_right();
-  } else if (roomba1_dir == forward) {
+  } else if (roomba1_dir == left) { //Changed "backward" to "left"
     turn_roomba_left();
   }
 
@@ -191,23 +197,28 @@ void move_servo_right(Servo servo) {
 }
 
 void turn_roomba_right() {
-  Serial2.write('r');
+  //Serial2.write('r'); -- doesn't make sense
+  r.drive(50, -1);
 }
 
 void turn_roomba_left() {
-  Serial2.write('l');
+  //Serial2.write('l');
+  r.drive(50, 1);
 }
 
 void move_roomba_forward() {
-  Serial2.write('f');
+  //Serial2.write('f');
+  r.drive(50, 32768);
 }
 
 void move_roomba_backward() {
-  Serial2.write('b');
+  //Serial2.write('b');
+  r.drive(-50, 32768);
 }
 
 void stop_roomba() {
-  Serial2.write('s');
+  //Serial2.write('s');
+  r.drive(0, 0);
 }
 
 
