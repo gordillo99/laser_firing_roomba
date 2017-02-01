@@ -1,3 +1,7 @@
+#include <LiquidCrystal.h>
+
+LiquidCrystal lcd(8, 9, 4, 5, 6, 7);
+
 // CONSTANT BYTE TO NUMBER CONVENTIONS
 //servo1
 const unsigned int servo1left = 0;
@@ -51,25 +55,37 @@ void setup() {
   // initialize pins
   pinMode(laser_button_pin, INPUT_PULLUP);
   pinMode(roomba_button_pin, INPUT_PULLUP);
+  lcd.begin(16, 2);
 }
 
 // the loop routine runs over and over again forever:
 void loop() {
-
+  lcd.setCursor(0,1);
+  lcd.print("Laser: ");
   // transmit only when change state of laser
   int laser_value = analogRead(laser_button_pin);
   if (laser_value < 400 && !firing_laser) {
+    lcd.setCursor(7,1);
+    lcd.print(" ON ");
     firing_laser = true;
     signal_fire_laser();
   } else if(laser_value > 401 && firing_laser){
+    lcd.setCursor(7,1);
+    lcd.print(" OFF");
     firing_laser = false;
     signal_turnoff_laser();
   }
+  else if(!firing_laser)
+    lcd.print(" OFF");
 
   // transmit only when change state of joystick 1 (servo motors)
   int sensorValue1 = map((int) analogRead(servo_1_pin), 0, 1024, 0, 180); //input signal for controlling myServo
   int sensorValue2 = map((int) analogRead(servo_2_pin), 0, 1024, 0, 180); //input signal for controllers myServo2
-
+  
+  //lcd.setCursor(0,0);
+  //lcd.print("X: );
+  //lcd.print
+  
   if (sensorValue1 < 70 && sensorValue1 >= 0 && servo_1_dir != backward) {
     servo_1_dir = backward;
     Serial1.write(servo1left);
