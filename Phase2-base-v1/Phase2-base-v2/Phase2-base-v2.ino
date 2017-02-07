@@ -212,7 +212,7 @@ void lcd_task()
     case left_off:
       lcd.print("L");
       lcd.setCursor(7, 1);
-      lcd.print("1");
+      lcd.print("0");
       break;
     case right_off:
       lcd.print("R");

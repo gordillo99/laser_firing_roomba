@@ -103,11 +103,11 @@ void turn_roomba_left() {
 }
 
 void move_roomba_forward() {
-  r.drive(100, 32768);
+  r.drive(-100, 32768);
 }
 
 void move_roomba_backward() {
-  r.drive(-100, 32768);
+  r.drive(100, 32768);
 }
 
 void stop_roomba() {
@@ -147,19 +147,19 @@ void move_roomba_backward_fast() {
 }
 
 void move_roomba_forward_left_fast() {
-  r.drive(200, -100);
-}
-
-void move_roomba_forward_right_fast() {
   r.drive(200, 100);
 }
 
+void move_roomba_forward_right_fast() {
+  r.drive(200, -100);
+}
+
 void move_roomba_backward_left_fast() {
-  r.drive(-200, 100);
+  r.drive(-200, -100);
 }
 
 void move_roomba_backward_right_fast() {
-  r.drive(-200, -100);
+  r.drive(-200, 100);
 }
 
 void poll_incoming_commands() {
@@ -220,12 +220,14 @@ void poll_incoming_commands() {
         roomba2_dir = stopped;
         break;
       case roomba2forfast:
-        roomba2_dir = right_fast;
+        roomba2_dir = forward_fast;
         break;
       case roomba2backfast:
-        roomba2_dir = left_fast;
+        roomba2_dir = backward_fast;
         break;
-    }   
+    } 
+    Serial.println(roomba1_dir);
+    Serial.println(roomba2_dir);
   }
   digitalWrite(44, LOW);
 }
@@ -248,34 +250,14 @@ void move_servos() {
 
 void move_roomba() {
   digitalWrite(46, HIGH);
-  if (roomba1_dir == right && roomba2_dir == forward) { 
-    move_roomba_forward_right();
-  } else if (roomba1_dir == left && roomba2_dir == forward) { 
-    move_roomba_forward_left();
-  } else if (roomba1_dir == right && roomba2_dir == backward) { 
-    move_roomba_backward_left();
-  } else if (roomba1_dir == left && roomba2_dir == backward) { 
-    move_roomba_backward_right();
-  } else if (roomba2_dir == backward) {
-    move_roomba_backward();
-  } else if (roomba2_dir == forward) {
-    move_roomba_forward();
-  } else if (roomba1_dir == right) { 
-    turn_roomba_right();
-  } else if (roomba1_dir == left) { 
-    turn_roomba_left();
-  } else if (roomba2_dir == backward) {
-    move_roomba_backward();
-  } else if (roomba2_dir == forward) {
-    move_roomba_forward();
-  } else if (roomba1_dir == right_fast && roomba2_dir == forward_fast || roomba1_dir == right && roomba2_dir == forward_fast || roomba1_dir == right_fast && roomba2_dir == forward) { 
+  if (roomba1_dir == right_fast && roomba2_dir == forward_fast || roomba1_dir == right && roomba2_dir == forward_fast || roomba1_dir == right_fast && roomba2_dir == forward) { 
     move_roomba_forward_right_fast();
   } else if (roomba1_dir == left_fast && roomba2_dir == forward_fast || roomba1_dir == left && roomba2_dir == forward_fast || roomba1_dir == left_fast && roomba2_dir == forward) { 
     move_roomba_forward_left_fast();
   } else if (roomba1_dir == right_fast && roomba2_dir == backward_fast || roomba1_dir == right && roomba2_dir == backward_fast || roomba1_dir == right_fast && roomba2_dir == backward) { 
-    move_roomba_backward_left_fast();
-  } else if (roomba1_dir == left_fast && roomba2_dir == backward_fast || roomba1_dir == left && roomba2_dir == backward_fast || roomba1_dir == left_fast && roomba2_dir == backward) { 
     move_roomba_backward_right_fast();
+  } else if (roomba1_dir == left_fast && roomba2_dir == backward_fast || roomba1_dir == left && roomba2_dir == backward_fast || roomba1_dir == left_fast && roomba2_dir == backward) { 
+    move_roomba_backward_left_fast();
   } else if (roomba2_dir == backward_fast) {
     move_roomba_backward_fast();
   } else if (roomba2_dir == forward_fast) {
@@ -284,11 +266,15 @@ void move_roomba() {
     turn_roomba_right_fast();
   } else if (roomba1_dir == left_fast) { 
     turn_roomba_left_fast();
-  } else if (roomba2_dir == backward_fast) {
-    move_roomba_backward_fast();
-  } else if (roomba2_dir == forward_fast) {
-    move_roomba_forward_fast();
-  }
+  } else if (roomba2_dir == backward) {
+    move_roomba_backward();
+  } else if (roomba2_dir == forward) {
+    move_roomba_forward();
+  } else if (roomba1_dir == right) { 
+    turn_roomba_right();
+  } else if (roomba1_dir == left) { 
+    turn_roomba_left();
+  } 
 
   if (roomba1_dir == stopped && roomba2_dir == stopped) {
     stop_roomba();
@@ -300,16 +286,16 @@ void send_status() {
   int photoresistor_val = analogRead(photoresitor_pin);
   bool light_on_photoresistor = photoresistor_val > 400;
   if (light_on_photoresistor) {
-    if (roomba1_dir == left) Serial1.write(80);
-    else if (roomba1_dir == right) Serial1.write(81);
-    else if (roomba2_dir == forward) Serial1.write(82);
-    else if (roomba2_dir == backward) Serial1.write(83);
+    if (roomba1_dir == left_fast) Serial1.write(80);
+    else if (roomba1_dir == right_fast) Serial1.write(81);
+    else if (roomba2_dir == forward_fast) Serial1.write(82);
+    else if (roomba2_dir == backward_fast) Serial1.write(83);
     else if (roomba1_dir == stopped && roomba2_dir == stopped) Serial1.write(84);
   } else {
-    if (roomba1_dir == left) Serial1.write(112);
-    else if (roomba1_dir == right) Serial1.write(113);
-    else if (roomba2_dir == forward) Serial1.write(114);
-    else if (roomba2_dir == backward) Serial1.write(115);
+    if (roomba1_dir == left_fast) Serial1.write(112);
+    else if (roomba1_dir == right_fast) Serial1.write(113);
+    else if (roomba2_dir == forward_fast) Serial1.write(114);
+    else if (roomba2_dir == backward_fast) Serial1.write(115);
     else if (roomba1_dir == stopped && roomba2_dir == stopped) Serial1.write(116);
   }
 }
