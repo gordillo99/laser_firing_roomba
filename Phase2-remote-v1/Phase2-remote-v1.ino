@@ -28,6 +28,19 @@ const unsigned int roomba1stop = 50;
 const unsigned int firelaser = 64;
 const unsigned int offlaser = 65;
 
+//status
+const unsigned int left_on = 80;
+const unsigned int right_on = 81;
+const unsigned int forward_on = 82;
+const unsigned int backward_on = 83;
+const unsigned int stopped_on = 84;
+
+const unsigned int left_off = 112;
+const unsigned int right_off = 113;
+const unsigned int forward_off = 114;
+const unsigned int backward_off = 115;
+const unsigned int stopped_off = 116;
+
 // GENERAL DIRECTION CONSTANTS
 const int backward = -1;
 const int forward =1;
@@ -36,7 +49,8 @@ const int right = 2;
 const int left = 3;
 
 // CONSTANT PIN ASSIGNATIONS
-const int laser_activation_pin = 3;      // the number of the laster activation pin
+const int laser_activation_pin = 3; // the number of the laster activation pin
+const int photoresitor_pin = A15;
 
 // GLOBAL STATUS VARIABLES
 bool firing_laser = false; // global variable for current state of laser
@@ -72,30 +86,46 @@ void move_servo_right(Servo servo) {
 }
 
 void turn_roomba_right() {
-  r.drive(50, -1);
+  r.drive(100, -1);
 }
 
 void turn_roomba_left() {
-  r.drive(50, 1);
+  r.drive(100, 1);
 }
 
 void move_roomba_forward() {
-  r.drive(50, 32768);
+  r.drive(100, 32768);
 }
 
 void move_roomba_backward() {
-  r.drive(-50, 32768);
+  r.drive(-100, 32768);
 }
 
 void stop_roomba() {
   r.drive(0, 0);
 }
 
+void move_roomba_forward_left() {
+  r.drive(100, -100);
+}
+
+void move_roomba_forward_right() {
+  r.drive(100, 100);
+}
+
+void move_roomba_backward_left() {
+  r.drive(-100, 100);
+}
+
+void move_roomba_backward_right() {
+  r.drive(-100, -100);
+}
+
 void poll_incoming_commands() {
+  digitalWrite(44, HIGH);
   // poll for incoming commands
   if(Serial1.available()) {
     int command = Serial1.read();
-    Serial.println(command);
     switch(command) {
       case firelaser:
       case offlaser:
@@ -143,9 +173,11 @@ void poll_incoming_commands() {
         break;
     }   
   }
+  digitalWrite(44, LOW);
 }
 
 void move_servos() {
+  digitalWrite(45, HIGH);
   if (servo_1_dir == backward) {
     move_servo_left(myServo);
   } else if (servo_1_dir == forward) {
@@ -157,16 +189,28 @@ void move_servos() {
   } else if (servo_2_dir == forward) {
     move_servo_right(myServo2);
   }
+  digitalWrite(45, LOW);
 }
 
 void move_roomba() {
-  if (roomba1_dir == right) { // Changed "forward" to "right"
+  digitalWrite(46, HIGH);
+  if (roomba1_dir == right && roomba2_dir == forward) { 
+    move_roomba_forward_right();
+  } else if (roomba1_dir == left && roomba2_dir == forward) { 
+    move_roomba_forward_left();
+  } else if (roomba1_dir == right && roomba2_dir == backward) { 
+    move_roomba_backward_left();
+  } else if (roomba1_dir == left && roomba2_dir == backward) { 
+    move_roomba_backward_right();
+  } else if (roomba2_dir == backward) {
+    move_roomba_backward();
+  } else if (roomba2_dir == forward) {
+    move_roomba_forward();
+  } else if (roomba1_dir == right) { 
     turn_roomba_right();
-  } else if (roomba1_dir == left) { //Changed "backward" to "left"
+  } else if (roomba1_dir == left) { 
     turn_roomba_left();
-  }
-
-  if (roomba2_dir == backward) {
+  } else if (roomba2_dir == backward) {
     move_roomba_backward();
   } else if (roomba2_dir == forward) {
     move_roomba_forward();
@@ -175,6 +219,25 @@ void move_roomba() {
   if (roomba1_dir == stopped && roomba2_dir == stopped) {
     stop_roomba();
   } 
+  digitalWrite(46, HIGH);
+}
+
+void send_status() {
+  int photoresistor_val = analogRead(photoresitor_pin);
+  bool light_on_photoresistor = photoresistor_val > 400;
+  if (light_on_photoresistor) {
+    if (roomba1_dir == left) Serial1.write(80);
+    else if (roomba1_dir == right) Serial1.write(81);
+    else if (roomba2_dir == forward) Serial1.write(82);
+    else if (roomba2_dir == backward) Serial1.write(83);
+    else if (roomba1_dir == stopped && roomba2_dir == stopped) Serial1.write(84);
+  } else {
+    if (roomba1_dir == left) Serial1.write(112);
+    else if (roomba1_dir == right) Serial1.write(113);
+    else if (roomba2_dir == forward) Serial1.write(114);
+    else if (roomba2_dir == backward) Serial1.write(115);
+    else if (roomba1_dir == stopped && roomba2_dir == stopped) Serial1.write(116);
+  }
 }
  
 // idle task
@@ -199,6 +262,11 @@ void setup()
   
   // initialize laser related pins
   pinMode(laser_activation_pin, OUTPUT);
+
+  // for logic analyzer test
+  pinMode(44, OUTPUT);
+  pinMode(45, OUTPUT);
+  pinMode(46, OUTPUT);
 
   // RESETS SERVOS TO INITIAL POSITION
   int pos = 0;
@@ -238,9 +306,10 @@ void setup()
   // Start task arguments are:
   //    start offset in ms, period in ms, function callback
  
-  Scheduler_StartTask(0, 63, poll_incoming_commands);
-  Scheduler_StartTask(70, 50, move_servos);
-  Scheduler_StartTask(100, 100, move_roomba);
+  Scheduler_StartTask(0, 100, poll_incoming_commands); // 10 Hz
+  Scheduler_StartTask(100, 15, move_servos); // 67 Hz
+  Scheduler_StartTask(100, 150, move_roomba); // 6.7 Hz
+  Scheduler_StartTask(200, 500, send_status); // 2 Hz
 }
  
 void loop()
