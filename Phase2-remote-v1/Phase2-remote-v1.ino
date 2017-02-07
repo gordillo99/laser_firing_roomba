@@ -20,9 +20,14 @@ const unsigned int servo2stopped = 18;
 const unsigned int roomba2for = 32;
 const unsigned int roomba2back = 33;
 const unsigned int roomba2stop = 34;
+const unsigned int roomba2forfast = 35;
+const unsigned int roomba2backfast = 36;
+
 const unsigned int roomba1for = 48;
 const unsigned int roomba1back = 49;
 const unsigned int roomba1stop = 50;
+const unsigned int roomba1forfast = 51;
+const unsigned int roomba1backfast = 52;
 
 //laser
 const unsigned int firelaser = 64;
@@ -43,10 +48,14 @@ const unsigned int stopped_off = 116;
 
 // GENERAL DIRECTION CONSTANTS
 const int backward = -1;
-const int forward =1;
+const int forward = 1;
 const int stopped = 0;
 const int right = 2;
 const int left = 3;
+const int backward_fast = 4;
+const int forward_fast = 5;
+const int right_fast = 6;
+const int left_fast = 7;
 
 // CONSTANT PIN ASSIGNATIONS
 const int laser_activation_pin = 3; // the number of the laster activation pin
@@ -121,11 +130,44 @@ void move_roomba_backward_right() {
   r.drive(-100, -100);
 }
 
+void turn_roomba_right_fast() {
+  r.drive(200, -1);
+}
+
+void turn_roomba_left_fast() {
+  r.drive(200, 1);
+}
+
+void move_roomba_forward_fast() {
+  r.drive(200, 32768);
+}
+
+void move_roomba_backward_fast() {
+  r.drive(-200, 32768);
+}
+
+void move_roomba_forward_left_fast() {
+  r.drive(200, -100);
+}
+
+void move_roomba_forward_right_fast() {
+  r.drive(200, 100);
+}
+
+void move_roomba_backward_left_fast() {
+  r.drive(-200, 100);
+}
+
+void move_roomba_backward_right_fast() {
+  r.drive(-200, -100);
+}
+
 void poll_incoming_commands() {
   digitalWrite(44, HIGH);
   // poll for incoming commands
   if(Serial1.available()) {
     int command = Serial1.read();
+    //Serial.println(command);
     switch(command) {
       case firelaser:
       case offlaser:
@@ -161,6 +203,12 @@ void poll_incoming_commands() {
       case roomba1stop:
         roomba1_dir = stopped;
         break;
+      case roomba1forfast:
+        roomba1_dir = right_fast;
+        break;
+      case roomba1backfast:
+        roomba1_dir = left_fast;
+        break;
 
       case roomba2for:
         roomba2_dir = backward;
@@ -170,6 +218,12 @@ void poll_incoming_commands() {
         break;
       case roomba2stop:
         roomba2_dir = stopped;
+        break;
+      case roomba2forfast:
+        roomba2_dir = right_fast;
+        break;
+      case roomba2backfast:
+        roomba2_dir = left_fast;
         break;
     }   
   }
@@ -214,6 +268,26 @@ void move_roomba() {
     move_roomba_backward();
   } else if (roomba2_dir == forward) {
     move_roomba_forward();
+  } else if (roomba1_dir == right_fast && roomba2_dir == forward_fast || roomba1_dir == right && roomba2_dir == forward_fast || roomba1_dir == right_fast && roomba2_dir == forward) { 
+    move_roomba_forward_right_fast();
+  } else if (roomba1_dir == left_fast && roomba2_dir == forward_fast || roomba1_dir == left && roomba2_dir == forward_fast || roomba1_dir == left_fast && roomba2_dir == forward) { 
+    move_roomba_forward_left_fast();
+  } else if (roomba1_dir == right_fast && roomba2_dir == backward_fast || roomba1_dir == right && roomba2_dir == backward_fast || roomba1_dir == right_fast && roomba2_dir == backward) { 
+    move_roomba_backward_left_fast();
+  } else if (roomba1_dir == left_fast && roomba2_dir == backward_fast || roomba1_dir == left && roomba2_dir == backward_fast || roomba1_dir == left_fast && roomba2_dir == backward) { 
+    move_roomba_backward_right_fast();
+  } else if (roomba2_dir == backward_fast) {
+    move_roomba_backward_fast();
+  } else if (roomba2_dir == forward_fast) {
+    move_roomba_forward_fast();
+  } else if (roomba1_dir == right_fast) { 
+    turn_roomba_right_fast();
+  } else if (roomba1_dir == left_fast) { 
+    turn_roomba_left_fast();
+  } else if (roomba2_dir == backward_fast) {
+    move_roomba_backward_fast();
+  } else if (roomba2_dir == forward_fast) {
+    move_roomba_forward_fast();
   }
 
   if (roomba1_dir == stopped && roomba2_dir == stopped) {
