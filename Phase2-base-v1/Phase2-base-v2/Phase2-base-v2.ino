@@ -19,9 +19,14 @@ const unsigned int servo2stopped = 18;
 const unsigned int roomba2for = 32;
 const unsigned int roomba2back = 33;
 const unsigned int roomba2stop = 34;
+const unsigned int roomba2forfast = 35;
+const unsigned int roomba2backfast = 36;
+
 const unsigned int roomba1for = 48;
 const unsigned int roomba1back = 49;
 const unsigned int roomba1stop = 50;
+const unsigned int roomba1forfast = 51;
+const unsigned int roomba1backfast = 52;
 
 //laser
 const unsigned int firelaser = 64;
@@ -29,10 +34,14 @@ const unsigned int offlaser = 65;
 
 // GENERAL DIRECTION CONSTANTS
 const int backward = -1;
-const int forward =1;
+const int forward = 1;
 const int stopped = 0;
 const int right = 2;
 const int left = 3;
+const int backward_fast = 4;
+const int forward_fast = 5;
+const int right_fast = 6;
+const int left_fast = 7;
 
 // CONSTANT PIN ASSIGNATIONS
 const int laser_button_pin = A10;     // the number of the pushbutton pin (fire laser)
@@ -127,23 +136,35 @@ void joystick2_task()
   int sensorValue3 = map((int) analogRead(roomba_1_pin), 0, 1024, 0, 180); //input signal for controlling roomba1
   int sensorValue4 = map((int) analogRead(roomba_2_pin), 0, 1024, 0, 180); //input signal for controllers roomba2
 
-  if (sensorValue3 < 70 && sensorValue3 >= 0 && roomba_dir1 != backward) {
+  if (sensorValue3 < 70 && sensorValue3 >= 41 && roomba_dir1 != backward) {
     roomba_dir1 = backward;
     Serial1.write(roomba1back);
-  } else if (sensorValue3 < 180 && sensorValue3 > 110 && roomba_dir1 != forward) {
+  } else if (sensorValue3 < 150 && sensorValue3 > 110 && roomba_dir1 != forward) {
     roomba_dir1 = forward;
     Serial1.write(roomba1for);
+  } else if (sensorValue3 < 40 && sensorValue3 >= 0 && roomba_dir1 != backward_fast) {
+    roomba_dir1 = backward_fast;
+    Serial1.write(roomba1backfast);
+  } else if (sensorValue3 <= 180 && sensorValue3 >= 150 && roomba_dir1 != forward_fast) {
+    roomba_dir1 = forward_fast;
+    Serial1.write(roomba1forfast);
   } else if(sensorValue3 < 109 && sensorValue3 > 50 && roomba_dir1 != stopped) {
     roomba_dir1 = stopped;
     Serial1.write(roomba1stop);
   }
 
-  if (sensorValue4 < 70 && sensorValue4 >= 0 && roomba_dir2 != backward) {
+  if (sensorValue4 < 70 && sensorValue4 >= 41 && roomba_dir2 != backward) {
     roomba_dir2 = backward;
     Serial1.write(roomba2back);
-  } else if (sensorValue4 < 180 && sensorValue4 > 110 && roomba_dir2 != forward) {
+  } else if (sensorValue4 < 150 && sensorValue4 > 110 && roomba_dir2 != forward) {
     roomba_dir2 = forward;
     Serial1.write(roomba2for);
+  } else if (sensorValue4 < 40 && sensorValue4 >= 0 && roomba_dir2 != backward_fast) {
+    roomba_dir2 = backward_fast;
+    Serial1.write(roomba2backfast);
+  } else if (sensorValue4 <= 180 && sensorValue4 >= 150 && roomba_dir2 != forward_fast) {
+    roomba_dir2 = forward_fast;
+    Serial1.write(roomba2forfast);
   } else if(sensorValue4 < 109 && sensorValue4 > 50 && roomba_dir2 != stopped) {
     roomba_dir2 = stopped;
     Serial1.write(roomba2stop);
@@ -191,7 +212,7 @@ void lcd_task()
     case left_off:
       lcd.print("L");
       lcd.setCursor(7, 1);
-      lcd.print("1");
+      lcd.print("0");
       break;
     case right_off:
       lcd.print("R");
