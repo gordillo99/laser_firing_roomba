@@ -50,6 +50,19 @@ int servo_2_dir = 0; // -1 (backward), 0 (static), 1 (forward)
 int roomba_dir1 = 0; // -1 (backward), 0 (static), 1 (forward)
 int roomba_dir2 = 0; // -1 (backward), 0 (static), 1 (forward)
 
+const unsigned int left_on = 80;
+const unsigned int right_on = 81;
+const unsigned int forward_on = 82;
+const unsigned int backward_on = 83;
+const unsigned int stopped_on = 84;
+
+const unsigned int left_off = 112;
+const unsigned int right_off = 113;
+const unsigned int forward_off = 114;
+const unsigned int backward_off = 115;
+const unsigned int stopped_off = 116;
+
+int feedback_status = 0;
 
 void signal_fire_laser() {
   Serial1.write(firelaser);
@@ -62,6 +75,7 @@ void signal_turnoff_laser() {
 // task function for joystick1 task
 void joystick1_task()
 {
+  digitalWrite(44, HIGH);
   int sensorValue1 = map((int) analogRead(servo_1_pin), 0, 1024, 0, 180); //input signal for controlling myServo
   int sensorValue2 = map((int) analogRead(servo_2_pin), 0, 1024, 0, 180); //input signal for controllers myServo2
   
@@ -91,11 +105,25 @@ void joystick1_task()
     Serial1.write(servo2stopped);
   }
 
+  int laser_value = analogRead(laser_button_pin);
+  if (laser_value < 400 && !firing_laser) {
+    firing_laser = true;
+    signal_fire_laser();
+  } else if(laser_value > 401 && firing_laser){
+    firing_laser = false;
+    signal_turnoff_laser();
+  }
+  else if(!firing_laser){
+    
+  }
+
+ digitalWrite(44, LOW);
 }
  
 // task function for joystick2 task
 void joystick2_task()
 {
+  digitalWrite(45, HIGH);
   int sensorValue3 = map((int) analogRead(roomba_1_pin), 0, 1024, 0, 180); //input signal for controlling roomba1
   int sensorValue4 = map((int) analogRead(roomba_2_pin), 0, 1024, 0, 180); //input signal for controllers roomba2
 
@@ -120,33 +148,83 @@ void joystick2_task()
     roomba_dir2 = stopped;
     Serial1.write(roomba2stop);
   }
+  digitalWrite(45, LOW);
 }
 
-// tast function for 
-void bluetooth_task()
-{
-  
-}
-
+int ctr = 0;
 void lcd_task()
 {
-  lcd.setCursor(0,1);
-  lcd.print("Laser: ");
-  // transmit only when change state of laser
-  int laser_value = analogRead(laser_button_pin);
-  if (laser_value < 400 && !firing_laser) {
-    lcd.setCursor(7,1);
-    lcd.print(" ON ");
-    firing_laser = true;
-    signal_fire_laser();
-  } else if(laser_value > 401 && firing_laser){
-    lcd.setCursor(7,1);
-    lcd.print(" OFF");
-    firing_laser = false;
-    signal_turnoff_laser();
+    digitalWrite(46, HIGH);
+    lcd.setCursor(0,0);
+    lcd.print("Roomba: ");
+    lcd.setCursor(0,1);
+    lcd.print("Photo: ");
+    lcd.setCursor(8,0);
+    //Serial.println(feedback_status);
+  switch(feedback_status){
+    case left_on:
+      lcd.print("L");
+      lcd.setCursor(7, 1);
+      lcd.print("1");
+      break;
+    case right_on:
+      lcd.print("R");
+      lcd.setCursor(7, 1);
+      lcd.print("1");
+      break;
+    case forward_on:
+      lcd.print("F");
+      lcd.setCursor(7, 1);
+      lcd.print("1");
+      break;
+    case backward_on:
+      lcd.print("B");
+      lcd.setCursor(7, 1);
+      lcd.print("1");
+      break;
+    case stopped_on:
+      lcd.print("S");
+      lcd.setCursor(7, 1);
+      lcd.print("1");
+      break;
+      
+    case left_off:
+      lcd.print("L");
+      lcd.setCursor(7, 1);
+      lcd.print("1");
+      break;
+    case right_off:
+      lcd.print("R");
+      lcd.setCursor(7, 1);
+      lcd.print("0");
+      break;
+    case forward_off:
+      lcd.print("F");
+      lcd.setCursor(7, 1);
+      lcd.print("0");
+      break;
+    case backward_off:
+      lcd.print("B");
+      lcd.setCursor(7, 1);
+      lcd.print("0");
+      break;
+    case stopped_off:
+      lcd.print("S");
+      lcd.setCursor(7, 1);
+      lcd.print("0");
+      break;
+    default:
+      break;
   }
-  else if(!firing_laser)
-    lcd.print(" OFF");
+  Serial.println(feedback_status);
+  digitalWrite(46, LOW);
+}
+
+void feedback(){ // This function retrieves the state of the Roomba and Laser
+  digitalWrite(47, HIGH);
+   while(Serial1.available())
+      feedback_status = Serial1.read();
+  digitalWrite(47, LOW);
 }
 
 // idle task
@@ -170,16 +248,20 @@ void setup()
   pinMode(laser_button_pin, INPUT_PULLUP);
   pinMode(roomba_button_pin, INPUT_PULLUP);
   lcd.begin(16, 2);
- 
+  pinMode(44, OUTPUT);
+  pinMode(45, OUTPUT);
+  pinMode(46, OUTPUT);
+  pinMode(47, OUTPUT);
+
   Scheduler_Init();
  
   // Start task arguments are:
   //    start offset in ms, period in ms, function callback
  
-  Scheduler_StartTask(0, 100, joystick1_task);
-  Scheduler_StartTask(200, 100, joystick2_task);
-  Scheduler_StartTask(300, 100, bluetooth_task);
-  Scheduler_StartTask(300, 100, lcd_task);
+  Scheduler_StartTask(0, 40, joystick1_task);
+  Scheduler_StartTask(60, 40, joystick2_task);
+  Scheduler_StartTask(120, 200, lcd_task);
+  Scheduler_StartTask(210, 100, feedback);
 }
  
 void loop()
